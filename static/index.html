@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>System Health Monitor</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Outfit:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #0d1117;
+      --bg-card: #161b22;
+      --bg-elevated: #21262d;
+      --border: #30363d;
+      --text: #e6edf3;
+      --text-muted: #8b949e;
+      --accent: #58a6ff;
+      --accent-green: #3fb950;
+      --accent-yellow: #d29922;
+      --accent-red: #f85149;
+      --glow: rgba(88, 166, 255, 0.15);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Outfit', sans-serif;
+      background: var(--bg-dark);
+      color: var(--text);
+      min-height: 100vh;
+      background-image: 
+        radial-gradient(ellipse 80% 50% at 50% -20%, var(--glow), transparent),
+        radial-gradient(circle at 100% 0%, rgba(63, 185, 80, 0.05), transparent 40%);
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 2rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    h1 {
+      font-size: 1.75rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    h1::before {
+      content: '';
+      width: 8px;
+      height: 24px;
+      background: linear-gradient(180deg, var(--accent), var(--accent-green));
+      border-radius: 4px;
+    }
+
+    .status-badge {
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      background: var(--accent-green);
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.25rem;
+      margin-bottom: 2rem;
+    }
+
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.25rem;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .card:hover {
+      border-color: var(--accent);
+      box-shadow: 0 0 24px var(--glow);
+    }
+
+    .card-title {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
+      margin-bottom: 0.75rem;
+      font-weight: 600;
+    }
+
+    .card-value {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 2rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+
+    .card-value.accent { color: var(--accent); }
+    .card-value.green { color: var(--accent-green); }
+    .card-value.yellow { color: var(--accent-yellow); }
+    .card-value.red { color: var(--accent-red); }
+
+    .progress-bar {
+      height: 6px;
+      background: var(--bg-elevated);
+      border-radius: 3px;
+      overflow: hidden;
+      margin-top: 0.75rem;
+    }
+
+    .progress-fill {
+      height: 100%;
+      border-radius: 3px;
+      transition: width 0.5s ease;
+    }
+
+    .progress-fill.cpu { background: linear-gradient(90deg, var(--accent-green), var(--accent)); }
+    .progress-fill.mem { background: linear-gradient(90deg, var(--accent), var(--accent-yellow)); }
+    .progress-fill.disk { background: linear-gradient(90deg, var(--accent-yellow), var(--accent-red)); }
+
+    .card-details {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-top: 0.5rem;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .processes-card {
+      grid-column: 1 / -1;
+    }
+
+    .processes-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+    }
+
+    .processes-table th {
+      text-align: left;
+      padding: 0.75rem;
+      color: var(--text-muted);
+      font-weight: 600;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .processes-table td {
+      padding: 0.6rem 0.75rem;
+      border-bottom: 1px solid var(--border);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+    }
+
+    .processes-table tr:hover td {
+      background: var(--bg-elevated);
+    }
+
+    .process-name {
+      font-family: 'Outfit', sans-serif;
+      font-weight: 500;
+    }
+
+    .error {
+      color: var(--accent-red);
+      padding: 1rem;
+      background: rgba(248, 81, 73, 0.1);
+      border-radius: 8px;
+      margin: 1rem 0;
+    }
+
+    .alerts-card {
+      grid-column: 1 / -1;
+    }
+
+    .alerts-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    .alert-badge {
+      font-size: 0.7rem;
+      padding: 0.25rem 0.5rem;
+      border-radius: 6px;
+      font-weight: 600;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .alert-badge.on {
+      background: rgba(63, 185, 80, 0.2);
+      color: var(--accent-green);
+    }
+
+    .alert-badge.off {
+      background: rgba(139, 148, 158, 0.2);
+      color: var(--text-muted);
+    }
+
+    .thresholds {
+      display: flex;
+      gap: 1.5rem;
+      margin: 0.75rem 0;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .recent-alerts {
+      margin-top: 1rem;
+      font-size: 0.85rem;
+    }
+
+    .recent-alerts li {
+      padding: 0.4rem 0;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+
+    .recent-alerts li:last-child {
+      border-bottom: none;
+    }
+
+    .recent-alerts .alert-metric {
+      color: var(--accent-yellow);
+    }
+
+    .recent-alerts .alert-time {
+      color: var(--text-muted);
+      font-size: 0.8rem;
+    }
+
+    .threshold-label {
+      color: var(--text-muted);
+      font-size: 0.75rem;
+      margin-top: 0.25rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>System Health Monitor</h1>
+      <div class="status-badge">
+        <span class="status-dot"></span>
+        <span id="lastUpdate">Updating...</span>
+      </div>
+    </header>
+
+    <div id="error" class="error" style="display: none;"></div>
+
+    <div class="grid">
+      <div class="card">
+        <div class="card-title">CPU Usage</div>
+        <div class="card-value accent" id="cpuPercent">--</div>
+        <div class="progress-bar">
+          <div class="progress-fill cpu" id="cpuBar" style="width: 0%"></div>
+        </div>
+        <div class="card-details" id="cpuDetails">-- cores · -- GHz</div>
+        <div class="threshold-label" id="cpuThreshold">Alert at --%</div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Memory (RAM)</div>
+        <div class="card-value" id="memPercent">--</div>
+        <div class="progress-bar">
+          <div class="progress-fill mem" id="memBar" style="width: 0%"></div>
+        </div>
+        <div class="card-details" id="memDetails">-- GB / -- GB used</div>
+        <div class="threshold-label" id="memThreshold">Alert at --%</div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Disk Usage</div>
+        <div class="card-value" id="diskPercent">--</div>
+        <div class="progress-bar">
+          <div class="progress-fill disk" id="diskBar" style="width: 0%"></div>
+        </div>
+        <div class="card-details" id="diskDetails">-- GB / -- GB used</div>
+        <div class="threshold-label" id="diskThreshold">Alert at --%</div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">System</div>
+        <div class="card-value green" id="hostname">--</div>
+        <div class="card-details" id="systemInfo">--</div>
+      </div>
+    </div>
+
+    <div class="card alerts-card">
+      <div class="alerts-header">
+        <div class="card-title">Email Alerts</div>
+        <span class="alert-badge off" id="alertsStatus">Disabled</span>
+      </div>
+      <div class="thresholds" id="thresholdsInfo">
+        CPU: --% · RAM: --% · Disk: --% · Cooldown: -- min
+      </div>
+      <div class="recent-alerts">
+        <div class="card-title" style="margin-bottom: 0.5rem;">Recent Alerts</div>
+        <ul id="recentAlertsList" style="list-style: none;">
+          <li style="color: var(--text-muted);">No alerts yet. Edit config.ini to enable.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card processes-card">
+      <div class="card-title">Top Processes (by CPU & Memory)</div>
+      <table class="processes-table">
+        <thead>
+          <tr>
+            <th>Process</th>
+            <th>PID</th>
+            <th>CPU %</th>
+            <th>Memory %</th>
+            <th>Memory (MB)</th>
+          </tr>
+        </thead>
+        <tbody id="processList">
+          <tr><td colspan="5" style="color: var(--text-muted);">Loading...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    const POLL_INTERVAL = 2000;
+
+    function setColor(el, percent) {
+      el.classList.remove('green', 'yellow', 'red');
+      if (percent < 70) el.classList.add('green');
+      else if (percent < 90) el.classList.add('yellow');
+      else el.classList.add('red');
+    }
+
+    async function fetchHealth() {
+      try {
+        const res = await fetch('/api/health');
+        if (!res.ok) throw new Error('Failed to fetch');
+        const data = await res.json();
+        return data;
+      } catch (e) {
+        throw e;
+      }
+    }
+
+    async function fetchProcesses() {
+      try {
+        const res = await fetch('/api/processes');
+        if (!res.ok) throw new Error('Failed to fetch');
+        const data = await res.json();
+        return data.processes || [];
+      } catch (e) {
+        return [];
+      }
+    }
+
+    function updateUI(data) {
+      document.getElementById('error').style.display = 'none';
+
+      const cpu = data.cpu;
+      const mem = data.memory;
+      const disk = data.disk;
+      const sys = data.system;
+
+      document.getElementById('cpuPercent').textContent = cpu.percent + '%';
+      document.getElementById('cpuBar').style.width = cpu.percent + '%';
+      setColor(document.getElementById('cpuPercent'), cpu.percent);
+      document.getElementById('cpuDetails').textContent = 
+        `${cpu.count_logical} logical cores · ${cpu.frequency_current_mhz || '--'} MHz`;
+
+      document.getElementById('memPercent').textContent = mem.percent + '%';
+      document.getElementById('memBar').style.width = mem.percent + '%';
+      setColor(document.getElementById('memPercent'), mem.percent);
+      document.getElementById('memDetails').textContent = 
+        `${mem.used_gb} GB / ${mem.total_gb} GB used`;
+
+      document.getElementById('diskPercent').textContent = disk.percent + '%';
+      document.getElementById('diskBar').style.width = disk.percent + '%';
+      setColor(document.getElementById('diskPercent'), disk.percent);
+      document.getElementById('diskDetails').textContent = 
+        `${disk.used_gb} GB / ${disk.total_gb} GB used`;
+
+      document.getElementById('hostname').textContent = sys.hostname;
+      document.getElementById('systemInfo').textContent = 
+        `${sys.platform} ${sys.platform_release} · ${sys.architecture}`;
+
+      document.getElementById('lastUpdate').textContent = 
+        'Updated ' + new Date().toLocaleTimeString();
+
+      if (data.alerts) {
+        const a = data.alerts;
+        const th = a.thresholds || {};
+        document.getElementById('cpuThreshold').textContent = `Alert at ${th.cpu ?? '--'}%`;
+        document.getElementById('memThreshold').textContent = `Alert at ${th.ram ?? '--'}%`;
+        document.getElementById('diskThreshold').textContent = `Alert at ${th.disk ?? '--'}%`;
+        document.getElementById('alertsStatus').textContent = a.enabled ? 'Alerts ON' : 'Alerts OFF';
+        document.getElementById('alertsStatus').className = 'alert-badge ' + (a.enabled ? 'on' : 'off');
+        document.getElementById('thresholdsInfo').textContent = 
+          `CPU: ${th.cpu ?? '--'}% · RAM: ${th.ram ?? '--'}% · Disk: ${th.disk ?? '--'}% · Cooldown: ${a.cooldown_minutes ?? '--'} min`;
+        const list = document.getElementById('recentAlertsList');
+        if (a.recent && a.recent.length) {
+          list.innerHTML = a.recent.slice().reverse().map(r => `
+            <li>
+              <span class="alert-metric">${escapeHtml(r.metric || 'alert')}: ${escapeHtml(r.message || '-')}</span>
+              <span class="alert-time">${new Date(r.time).toLocaleString()}</span>
+            </li>
+          `).join('');
+        } else {
+          list.innerHTML = '<li style="color: var(--text-muted);">No alerts yet. Edit config.ini and set enabled=true to enable email alerts.</li>';
+        }
+      }
+    }
+
+    function updateProcesses(processes) {
+      const tbody = document.getElementById('processList');
+      if (!processes.length) {
+        tbody.innerHTML = '<tr><td colspan="5" style="color: var(--text-muted);">No process data</td></tr>';
+        return;
+      }
+      tbody.innerHTML = processes.map(p => `
+        <tr>
+          <td class="process-name">${escapeHtml(p.name)}</td>
+          <td>${p.pid}</td>
+          <td>${p.cpu_percent}%</td>
+          <td>${p.memory_percent}%</td>
+          <td>${p.memory_mb}</td>
+        </tr>
+      `).join('');
+    }
+
+    function escapeHtml(s) {
+      const div = document.createElement('div');
+      div.textContent = s;
+      return div.innerHTML;
+    }
+
+    function showError(msg) {
+      const el = document.getElementById('error');
+      el.textContent = msg;
+      el.style.display = 'block';
+    }
+
+    async function refresh() {
+      try {
+        const [health, processes] = await Promise.all([fetchHealth(), fetchProcesses()]);
+        updateUI(health);
+        updateProcesses(processes);
+      } catch (e) {
+        showError('Could not connect to the monitor. Is the server running? ' + e.message);
+      }
+    }
+
+    refresh();
+    setInterval(refresh, POLL_INTERVAL);
+  </script>
+</body>
+</html>
